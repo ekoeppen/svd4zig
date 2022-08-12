@@ -9,18 +9,18 @@ const svd = @import("svd.zig");
 var line_buffer: [1024 * 1024]u8 = undefined;
 
 const register_def =
-    \\pub fn Register(comptime R: type) type {
-    \\    return RegisterRW(R, R);
+    \\pub fn Register(comptime R: type, comptime Backing: type) type {
+    \\    return RegisterRW(R, R, Backing);
     \\}
     \\
-    \\pub fn RegisterRW(comptime Read: type, comptime Write: type) type {
+    \\pub fn RegisterRW(comptime Read: type, comptime Write: type, comptime Backing: type) type {
     \\    return struct {
-    \\        raw_ptr: *volatile u32,
+    \\        raw_ptr: *volatile Backing,
     \\
     \\        const Self = @This();
     \\
     \\        pub fn init(address: usize) Self {
-    \\            return Self{ .raw_ptr = @intToPtr(*volatile u32, address) };
+    \\            return Self{ .raw_ptr = @intToPtr(*volatile Backing, address) };
     \\        }
     \\
     \\        pub fn initRange(address: usize, comptime dim_increment: usize, comptime num_registers: usize) [num_registers]Self {
@@ -42,8 +42,8 @@ const register_def =
     \\            // This is necessary for LLVM to generate code that can successfully
     \\            // modify MMIO registers that only allow word-sized stores.
     \\            // https://github.com/ziglang/zig/issues/8981#issuecomment-854911077
-    \\            const aligned: Write align(4) = value;
-    \\            self.raw_ptr.* = @ptrCast(*const u32, &aligned).*;
+    \\            const aligned: Write align(@sizeOf(Backing)) = value;
+    \\            self.raw_ptr.* = @ptrCast(*const Backing, &aligned).*;
     \\        }
     \\
     \\        pub fn modify(self: Self, new_value: anytype) void {
@@ -58,11 +58,11 @@ const register_def =
     \\            self.write(old_value);
     \\        }
     \\
-    \\        pub fn read_raw(self: Self) u32 {
+    \\        pub fn read_raw(self: Self) Backing {
     \\            return self.raw_ptr.*;
     \\        }
     \\
-    \\        pub fn write_raw(self: Self, value: u32) void {
+    \\        pub fn write_raw(self: Self, value: Backing) void {
     \\            self.raw_ptr.* = value;
     \\        }
     \\

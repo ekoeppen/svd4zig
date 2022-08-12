@@ -489,8 +489,8 @@ pub const Register = struct {
         }
 
         // Check if we need padding at the end
-        if (last_uncovered_bit != 32) {
-            try writeUnusedField(last_uncovered_bit, 32, self.reset_value, out_stream);
+        if (last_uncovered_bit != self.size) {
+            try writeUnusedField(last_uncovered_bit, self.size, self.reset_value, out_stream);
         }
 
         // close the struct and init the register
@@ -498,8 +498,8 @@ pub const Register = struct {
             \\
             \\}};
             \\/// {s}
-            \\pub const {s} = Register({s}_val).init(base_address + 0x{x});
-        , .{ description, name, name, self.address_offset.? });
+            \\pub const {s} = Register({s}_val, u{}).init(base_address + 0x{x});
+        , .{ description, name, name, self.size, self.address_offset.? });
 
         return;
     }
